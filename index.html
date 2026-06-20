@@ -178,9 +178,15 @@
   <!-- شاشة القياسات -->
   <div class="card">
     <h2>📐 شاشة القياسات</h2>
-    <div style="margin-bottom:12px">
-      <label class="fld">👤 اسم صاحب القياس</label>
-      <input type="text" id="clientName" placeholder="اكتب اسم العميل" oninput="saveClientName()">
+    <div class="row" style="margin-bottom:12px; gap:12px">
+      <div style="flex:1; min-width:160px">
+        <label class="fld">👤 اسم صاحب القياس</label>
+        <input type="text" id="clientName" placeholder="اكتب اسم العميل" oninput="saveClientName()">
+      </div>
+      <div style="flex:1; min-width:160px" id="bodyTypeWrap">
+        <label class="fld">🧍 نوع الجسم (القَصّة)</label>
+        <select id="bodyType" onchange="selectProfile(this.value)"></select>
+      </div>
     </div>
     <p class="help">
       أدخل القياسات المتوفرة فقط واترك الناقص فارغاً، ثم اضغط <b>«استكمال الناقص»</b>.
@@ -283,7 +289,7 @@
    ============================================================ */
 
 const STORE_KEY = 'measComp_v1';
-const DATA_VERSION = 5; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
+const DATA_VERSION = 6; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
 
 /* ---------- المنتجات الافتراضية ---------- */
 function defaultData(){
@@ -294,6 +300,14 @@ function defaultData(){
       {
         id:'thobe',
         name:'الثوب السعودي',
+        activeProfile:'reg',
+        // بروفايلات شكل الجسم: تُبدّل المعادلات الحسّاسة للقَصّة (الخصر/الورك/الأسفل)
+        profiles:[
+          {id:'reg',   name:'معتدل',          overrides:{}},
+          {id:'slim',  name:'نحيف',           overrides:{WA:'CH - 12', HP:'CH - 2'}},
+          {id:'full',  name:'ممتلئ',          overrides:{WA:'CH + 2',  HP:'CH + 6'}},
+          {id:'belly', name:'بكرش (بطن بارز)', overrides:{WA:'CH + 8',  HP:'CH + 2', BO:'HP + 6'}}
+        ],
         measures:[
           // المفتاح = الاختصار الإنجليزي المعتمد في نظامك (يُستخدم داخل المعادلات)
           {key:'FL',  label:'الطول الكلي الأمامي',     en:'Front Length',          unit:'سم', eq:''},
@@ -359,7 +373,12 @@ function migrate(d){
     const fresh = defaultData();
     const freshThobe = fresh.products.find(p=>p.id==='thobe');
     const idx = d.products.findIndex(p=>p.id==='thobe');
-    if(idx>=0){ d.products[idx].measures = freshThobe.measures; d.products[idx].name = freshThobe.name; }
+    if(idx>=0){
+      d.products[idx].measures = freshThobe.measures;
+      d.products[idx].name = freshThobe.name;
+      d.products[idx].profiles = freshThobe.profiles;           // بروفايلات شكل الجسم
+      if(!d.products[idx].activeProfile) d.products[idx].activeProfile = freshThobe.activeProfile;
+    }
     else { d.products.unshift(freshThobe); }
     d.version = DATA_VERSION;
     save(d);
@@ -368,6 +387,16 @@ function migrate(d){
 }
 function save(d){ localStorage.setItem(STORE_KEY, JSON.stringify(d||data)); }
 function activeProduct(){ return data.products.find(p=>p.id===data.activeId) || data.products[0]; }
+function activeProfile(){
+  const p=activeProduct(); if(!p.profiles||!p.profiles.length) return null;
+  return p.profiles.find(x=>x.id===p.activeProfile) || p.profiles[0];
+}
+// قائمة القياسات بعد تطبيق تعديلات بروفايل شكل الجسم على المعادلات الحسّاسة
+function effectiveMeasures(){
+  const p=activeProduct(); const prof=activeProfile();
+  const ov = (prof && prof.overrides) ? prof.overrides : {};
+  return p.measures.map(m => (m.key in ov) ? {...m, eq:ov[m.key]} : m);
+}
 
 /* ============================================================
    محرّك المعادلات: مُقيّم تعبيرات آمن (بدون eval)
@@ -499,7 +528,16 @@ function renderProductSelect(){
   sel.innerHTML = data.products.map(p=>`<option value="${p.id}" ${p.id===data.activeId?'selected':''}>${esc(p.name)}</option>`).join('');
   const p=activeProduct();
   document.getElementById('productMeta').textContent = `عدد القياسات: ${p.measures.length} · القياسات ذات معادلة احتياطية: ${p.measures.filter(m=>m.eq&&m.eq.trim()).length}`;
+  renderProfiles();
 }
+// قائمة أنواع الجسم (البروفايلات) للمنتج الحالي
+function renderProfiles(){
+  const p=activeProduct(); const wrap=document.getElementById('bodyTypeWrap'); const sel=document.getElementById('bodyType');
+  if(!p.profiles || !p.profiles.length){ wrap.style.display='none'; return; }
+  wrap.style.display='';
+  sel.innerHTML = p.profiles.map(pr=>`<option value="${pr.id}" ${pr.id===p.activeProfile?'selected':''}>${esc(pr.name)}</option>`).join('');
+}
+function selectProfile(id){ activeProduct().activeProfile=id; save(); toast('نوع الجسم: '+(activeProfile()?activeProfile().name:'')); }
 function renderGrid(){
   const p=activeProduct();
   const grid=document.getElementById('measureGrid');
@@ -546,7 +584,7 @@ function computeMissing(){
   const enteredCount = Object.values(vals).filter(v=>v!==null && !isNaN(v)).length;
   if(enteredCount===0){ toast('أدخل قياساً واحداً على الأقل أولاً'); }
 
-  const {filled, errors}=resolveMissing(p.measures, vals);
+  const {filled, errors}=resolveMissing(effectiveMeasures(), vals);
   lastFilled = {}; filled.forEach(f=> lastFilled[f.key]=f);   // نحفظ نتائج الحساب للنوافذ المنبثقة
 
   // كتابة النتائج في الحقول وتمييزها
@@ -586,7 +624,7 @@ function previewValue(m){
   }catch(e){ return null; }
 }
 function showBoxPopup(key){
-  const p=activeProduct(); const m=p.measures.find(x=>x.key===key);
+  const m=effectiveMeasures().find(x=>x.key===key);   // معادلة حسب بروفايل شكل الجسم
   const el=document.getElementById('in_'+key);
   const hasVal = el.value.trim()!=='';
   const isAuto = document.getElementById('mf_'+key).classList.contains('filled');
@@ -596,7 +634,7 @@ function showBoxPopup(key){
   if(hasVal && isAuto){
     badge='🟡 محسوب تلقائياً';
     rows.push(['المعادلة', key+' = '+(m.eq||'—')]);
-    rows.push(['بالأرقام', humanizeEq(m.eq,p.measures)+' = '+el.value]);
+    rows.push(['بالأرقام', humanizeEq(m.eq,effectiveMeasures())+' = '+el.value]);
     rows.push(['القيمة', el.value+' '+(m.unit||'')]);
   } else if(hasVal){
     badge='✋ مُدخل يدوياً';
@@ -627,10 +665,11 @@ function closePopup(){ document.getElementById('boxPopup').classList.remove('sho
    ============================================================ */
 function openFullList(){
   const p=activeProduct(); const vals=readValues();
-  const {known, filled}=resolveMissing(p.measures, vals);
+  const measures=effectiveMeasures();
+  const {known, filled}=resolveMissing(measures, vals);
   const fmap={}; filled.forEach(f=>fmap[f.key]=f);
   let manualN=0, autoN=0, missN=0;
-  const rows=p.measures.map((m,i)=>{
+  const rows=measures.map((m,i)=>{
     const manual = vals[m.key]!==null && !isNaN(vals[m.key]);
     let val = (m.key in known)? known[m.key] : '—';
     let src, cls, eqTxt='—';
@@ -643,11 +682,12 @@ function openFullList(){
       <td class="eqcell">${esc(eqTxt)}</td></tr>`;
   }).join('');
   const client = (data.clientName||'').trim();
+  const prof = activeProfile();
   document.getElementById('fullListTitle').textContent =
     'القائمة الكاملة — '+p.name + (client? ' · العميل: '+client : '');
   const today = new Date().toLocaleDateString('ar-EG');
   document.getElementById('fullListSummary').textContent =
-    `${client? 'العميل: '+client+' · ' : ''}التاريخ: ${today} · الإجمالي ${p.measures.length} · يدوي ${manualN} · محسوب ${autoN} · ناقص ${missN}`;
+    `${client? 'العميل: '+client+' · ' : ''}${prof? 'نوع الجسم: '+prof.name+' · ' : ''}التاريخ: ${today} · الإجمالي ${p.measures.length} · يدوي ${manualN} · محسوب ${autoN} · ناقص ${missN}`;
   document.getElementById('fullListBody').innerHTML = rows;
   document.getElementById('fullListModal').classList.add('show');
 }
