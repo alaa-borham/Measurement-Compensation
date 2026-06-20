@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<title>نظام تعويض القياسات الناقصة</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#0b1220; --card:#121a2b; --card2:#0f1626; --line:#243049;
+    --txt:#e8eef7; --muted:#93a3bd; --brand:#14b8a6; --brand2:#0d9488;
+    --accent:#f59e0b; --good:#22c55e; --bad:#ef4444; --info:#3b82f6;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:"Segoe UI",Tahoma,Arial,sans-serif; background:var(--bg);
+    color:var(--txt); -webkit-text-size-adjust:100%;
+  }
+  header{
+    position:sticky; top:0; z-index:10; background:linear-gradient(180deg,#0f766e,#0d9488);
+    padding:14px 16px; box-shadow:0 4px 16px rgba(0,0,0,.35);
+  }
+  header h1{margin:0; font-size:18px; display:flex; align-items:center; gap:8px}
+  header p{margin:4px 0 0; font-size:12px; color:#d7fff6; opacity:.9}
+  .wrap{max-width:920px; margin:0 auto; padding:16px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:16px}
+  .card h2{margin:0 0 12px; font-size:15px; display:flex; align-items:center; gap:8px}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  label.fld{display:block; font-size:12px; color:var(--muted); margin-bottom:4px}
+  select,input,textarea,button{font-family:inherit; font-size:14px}
+  select,input[type=number],input[type=text],textarea{
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--card2); color:var(--txt); outline:none;
+  }
+  select:focus,input:focus,textarea:focus{border-color:var(--brand)}
+  .btn{
+    border:none; border-radius:10px; padding:10px 16px; cursor:pointer; font-weight:700;
+    background:var(--brand); color:#04201c; transition:.15s; white-space:nowrap;
+  }
+  .btn:hover{filter:brightness(1.08)}
+  .btn.sec{background:#1e293b; color:var(--txt); border:1px solid var(--line)}
+  .btn.warn{background:var(--accent); color:#3a2600}
+  .btn.danger{background:transparent; color:var(--bad); border:1px solid var(--bad)}
+  .btn.small{padding:6px 10px; font-size:12px}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px}
+  .mfield{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:10px}
+  .mfield .top{display:flex; justify-content:space-between; align-items:center; gap:6px}
+  .mfield .name{font-size:13px; font-weight:700}
+  .mfield .unit{font-size:11px; color:var(--muted)}
+  .mfield input{margin-top:8px; text-align:center; font-size:16px; font-weight:700}
+  .mfield.filled{border-color:var(--accent); box-shadow:0 0 0 2px rgba(245,158,11,.15)}
+  .mfield.filled input{background:#2a2412; color:var(--accent)}
+  .mfield .eqnote{margin-top:6px; font-size:11px; color:var(--accent); line-height:1.5; display:none}
+  .mfield.filled .eqnote{display:block}
+  .tag{display:inline-block; font-size:10px; padding:2px 7px; border-radius:20px; font-weight:700}
+  .tag.auto{background:rgba(245,158,11,.18); color:var(--accent)}
+  .tag.manual{background:rgba(148,163,184,.15); color:var(--muted)}
+  .report{background:#0c1830; border:1px solid #1d3a66; border-radius:12px; padding:12px; margin-top:12px; display:none}
+  .report.show{display:block}
+  .report h3{margin:0 0 10px; font-size:14px; color:var(--info)}
+  .report ul{margin:0; padding:0; list-style:none}
+  .report li{padding:8px 10px; border-radius:8px; background:#0a1426; margin-bottom:6px; font-size:13px; line-height:1.7}
+  .report li .ml{color:var(--accent); font-weight:700}
+  .report li .eq{color:#7dd3fc; direction:ltr; display:inline-block; unicode-bidi:plaintext}
+  .report li .val{color:var(--good); font-weight:700}
+  .report .err{color:var(--bad)}
+  .muted{color:var(--muted); font-size:12px}
+  .hide{display:none !important}
+  .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-start; justify-content:center; z-index:50; padding:20px; overflow:auto}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; width:100%; max-width:680px}
+  .modal h2{margin-top:0}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{padding:8px 6px; border-bottom:1px solid var(--line); text-align:right}
+  th{color:var(--muted); font-weight:700; font-size:12px}
+  td input{padding:7px 8px}
+  .eqcell{direction:ltr; text-align:left; unicode-bidi:plaintext}
+  .sp{flex:1}
+  .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#0d9488; color:#fff; padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:.3s; z-index:99; pointer-events:none}
+  .toast.show{opacity:1}
+  .help{font-size:12px; color:var(--muted); line-height:1.8; background:#0c1424; border:1px dashed var(--line); border-radius:10px; padding:10px 12px}
+  code{background:#0a1426; padding:1px 6px; border-radius:5px; color:#7dd3fc; direction:ltr; display:inline-block}
+  @media(max-width:560px){ .grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))} }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding:0">
+    <h1>🧵 نظام تعويض القياسات الناقصة</h1>
+    <p>يحسب القياسات الناقصة تلقائياً من القياسات المتوفرة عبر معادلات قابلة للتعديل — مع توضيح كل تعديل ومعادلته</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- اختيار المنتج -->
+  <div class="card">
+    <h2>📦 المنتج</h2>
+    <div class="row">
+      <div style="flex:1; min-width:200px">
+        <label class="fld">اختر المنتج</label>
+        <select id="productSelect" onchange="selectProduct(this.value)"></select>
+      </div>
+      <div style="align-self:flex-end; display:flex; gap:8px; flex-wrap:wrap">
+        <button class="btn sec small" onclick="openManage()">⚙️ القياسات والمعادلات</button>
+        <button class="btn warn small" onclick="addProduct()">➕ منتج جديد</button>
+        <button class="btn danger small" onclick="deleteProduct()">🗑 حذف</button>
+      </div>
+    </div>
+    <p class="muted" id="productMeta" style="margin:10px 0 0"></p>
+  </div>
+
+  <!-- شاشة القياسات -->
+  <div class="card">
+    <h2>📐 شاشة القياسات</h2>
+    <p class="help">
+      أدخل القياسات المتوفرة فقط واترك الناقص فارغاً، ثم اضغط <b>«استكمال الناقص»</b>.
+      سيقوم النظام بحساب كل قياس ناقص من المتوفر، وتمييزه بلون مختلف مع كتابة المعادلة المستخدمة أسفله.
+    </p>
+    <div class="grid" id="measureGrid" style="margin-top:12px"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" onclick="computeMissing()">🧮 استكمال الناقص</button>
+      <button class="btn sec" onclick="clearValues()">↺ تفريغ</button>
+      <span class="sp"></span>
+      <span class="muted" id="statusLine"></span>
+    </div>
+
+    <div class="report" id="report">
+      <h3>📋 تقرير القياسات المعوَّضة</h3>
+      <ul id="reportList"></ul>
+    </div>
+  </div>
+
+  <p class="muted" style="text-align:center">
+    💾 البيانات محفوظة محلياً في هذا الجهاز ·
+    <a href="#" onclick="exportData();return false" style="color:var(--brand)">تصدير</a> ·
+    <a href="#" onclick="document.getElementById('importFile').click();return false" style="color:var(--brand)">استيراد</a>
+    <input type="file" id="importFile" accept="application/json" class="hide" onchange="importData(event)">
+  </p>
+</div>
+
+<!-- نافذة إدارة القياسات والمعادلات -->
+<div class="modal-bg" id="manageModal">
+  <div class="modal">
+    <h2>⚙️ قياسات ومعادلات: <span id="manageProductName" style="color:var(--brand)"></span></h2>
+    <p class="help">
+      كل قياس له <b>مفتاح إنجليزي</b> (يُستخدم داخل المعادلات) و<b>اسم عربي</b> و<b>معادلة احتياطية</b>.
+      تُستخدم المعادلة فقط عندما يكون القياس فارغاً. اكتب المعادلة بمفاتيح القياسات الأخرى والعمليات الحسابية.<br>
+      أمثلة: <code>chest - 4</code> · <code>(chest/2) + 5</code> · <code>length - 18</code> · <code>neck * 1.1</code><br>
+      اترك المعادلة فارغة إن كان القياس أساسياً لا يُشتق من غيره.
+    </p>
+    <table>
+      <thead>
+        <tr><th>المفتاح</th><th>الاسم العربي</th><th>الوحدة</th><th>المعادلة الاحتياطية</th><th></th></tr>
+      </thead>
+      <tbody id="manageRows"></tbody>
+    </table>
+    <div class="row" style="margin-top:12px">
+      <button class="btn sec small" onclick="addMeasureRow()">➕ إضافة قياس</button>
+      <span class="sp"></span>
+      <button class="btn" onclick="saveManage()">✔ حفظ</button>
+      <button class="btn sec" onclick="closeManage()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   نظام تعويض القياسات — مستقل بالكامل، بدون أي اعتماد خارجي
+   ============================================================ */
+
+const STORE_KEY = 'measComp_v1';
+
+/* ---------- المنتجات الافتراضية ---------- */
+function defaultData(){
+  return {
+    activeId: 'thobe',
+    products: [
+      {
+        id:'thobe',
+        name:'الثوب السعودي',
+        measures:[
+          {key:'length',   label:'الطول',          unit:'سم', eq:''},
+          {key:'shoulder', label:'الكتف',          unit:'سم', eq:'chest/3'},
+          {key:'chest',    label:'الصدر',          unit:'سم', eq:'waist + 6'},
+          {key:'waist',    label:'الوسط',          unit:'سم', eq:'chest - 6'},
+          {key:'hem',      label:'الكعب (الأسفل)', unit:'سم', eq:'chest + 8'},
+          {key:'sleeve',   label:'طول الكم (الردن)',unit:'سم', eq:'length - 18'},
+          {key:'bicep',    label:'الزند',          unit:'سم', eq:'chest/4'},
+          {key:'cuff',     label:'الأسوارة',       unit:'سم', eq:'neck + 1'},
+          {key:'neck',     label:'الرقبة',         unit:'سم', eq:'chest/6'}
+        ]
+      }
+    ]
+  };
+}
+
+let data = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){ const d = JSON.parse(raw); if(d && d.products && d.products.length) return d; }
+  }catch(e){}
+  const d = defaultData(); save(d); return d;
+}
+function save(d){ localStorage.setItem(STORE_KEY, JSON.stringify(d||data)); }
+function activeProduct(){ return data.products.find(p=>p.id===data.activeId) || data.products[0]; }
+
+/* ============================================================
+   محرّك المعادلات: مُقيّم تعبيرات آمن (بدون eval)
+   يدعم: + - * / ( )  والأرقام العشرية ومفاتيح القياسات
+   ============================================================ */
+function tokenize(expr){
+  const tokens=[]; let i=0;
+  while(i<expr.length){
+    const c=expr[i];
+    if(c===' '||c==='\t'){ i++; continue; }
+    if('+-*/()'.includes(c)){ tokens.push({t:c}); i++; continue; }
+    if(/[0-9.]/.test(c)){
+      let n=''; while(i<expr.length && /[0-9.]/.test(expr[i])){ n+=expr[i++]; }
+      tokens.push({t:'num', v:parseFloat(n)}); continue;
+    }
+    if(/[A-Za-z_؀-ۿ]/.test(c)){
+      let id=''; while(i<expr.length && /[A-Za-z0-9_؀-ۿ]/.test(expr[i])){ id+=expr[i++]; }
+      tokens.push({t:'var', v:id}); continue;
+    }
+    throw new Error('رمز غير مفهوم: '+c);
+  }
+  return tokens;
+}
+// محلّل تنازلي تكراري
+function parseExpr(tokens, vars, usedVars){
+  let pos=0;
+  function peek(){ return tokens[pos]; }
+  function next(){ return tokens[pos++]; }
+  function parseE(){ // + -
+    let v=parseT();
+    while(peek() && (peek().t==='+'||peek().t==='-')){
+      const op=next().t; const r=parseT();
+      v = op==='+' ? v+r : v-r;
+    }
+    return v;
+  }
+  function parseT(){ // * /
+    let v=parseF();
+    while(peek() && (peek().t==='*'||peek().t==='/')){
+      const op=next().t; const r=parseF();
+      if(op==='/'){ if(r===0) throw new Error('قسمة على صفر'); v=v/r; }
+      else v=v*r;
+    }
+    return v;
+  }
+  function parseF(){ // unary / atom
+    const tk=peek();
+    if(!tk) throw new Error('تعبير ناقص');
+    if(tk.t==='-'){ next(); return -parseF(); }
+    if(tk.t==='+'){ next(); return parseF(); }
+    if(tk.t==='('){ next(); const v=parseE(); if(!peek()||peek().t!==')') throw new Error('قوس غير مغلق'); next(); return v; }
+    if(tk.t==='num'){ next(); return tk.v; }
+    if(tk.t==='var'){
+      next();
+      if(usedVars) usedVars.add(tk.v);
+      if(!(tk.v in vars) || vars[tk.v]===null || vars[tk.v]===undefined || isNaN(vars[tk.v]))
+        throw new Error('قيمة غير متوفرة: '+tk.v);
+      return Number(vars[tk.v]);
+    }
+    throw new Error('رمز غير متوقع');
+  }
+  const result=parseE();
+  if(pos<tokens.length) throw new Error('بقايا غير مفهومة في المعادلة');
+  return result;
+}
+function getDeps(eq){
+  const used=new Set();
+  try{ const tk=tokenize(eq); parseExpr(tk, new Proxy({},{has:()=>true, get:()=>1}), used); }
+  catch(e){ /* نجمع المتغيرات حتى لو فشل التقييم */
+    try{ tokenize(eq).forEach(t=>{ if(t.t==='var') used.add(t.v); }); }catch(_){}
+  }
+  return [...used];
+}
+function evalEq(eq, vars){
+  const tokens=tokenize(eq);
+  return parseExpr(tokens, vars, null);
+}
+
+/* ============================================================
+   حلّ القياسات الناقصة (يدعم التسلسل: ناقص يعتمد على ناقص)
+   ============================================================ */
+function resolveMissing(measures, values){
+  // values: {key:number|null}
+  const known={}; const result=[]; const errors=[];
+  measures.forEach(m=>{ if(values[m.key]!==null && values[m.key]!==undefined && !isNaN(values[m.key])) known[m.key]=Number(values[m.key]); });
+
+  const missing = measures.filter(m=> !(m.key in known));
+  let progress=true;
+  const stillMissing = new Set(missing.map(m=>m.key));
+
+  while(progress && stillMissing.size){
+    progress=false;
+    for(const m of missing){
+      if(!stillMissing.has(m.key)) continue;
+      if(!m.eq || !m.eq.trim()) continue;               // لا معادلة احتياطية
+      const deps=getDeps(m.eq);
+      if(deps.every(d=> d in known)){                   // كل المتطلبات متوفرة الآن
+        try{
+          const val = evalEq(m.eq, known);
+          const rounded = Math.round(val*100)/100;
+          known[m.key]=rounded;
+          stillMissing.delete(m.key);
+          result.push({key:m.key, label:m.label, unit:m.unit, eq:m.eq, value:rounded, deps});
+          progress=true;
+        }catch(e){ /* قد تُحلّ لاحقاً، نتركها */ }
+      }
+    }
+  }
+  // ما تبقّى بدون حل
+  stillMissing.forEach(k=>{
+    const m=measures.find(x=>x.key===k);
+    let reason;
+    if(!m.eq || !m.eq.trim()) reason='لا توجد معادلة احتياطية لهذا القياس';
+    else{
+      const deps=getDeps(m.eq);
+      const lack=deps.filter(d=> !(d in known)).map(d=>{ const mm=measures.find(x=>x.key===d); return mm? mm.label : d; });
+      reason='القياسات المطلوبة للمعادلة غير متوفرة: '+ (lack.join('، ')||'—');
+    }
+    errors.push({key:k, label:m.label, eq:m.eq, reason});
+  });
+  return {known, filled:result, errors};
+}
+
+/* ============================================================
+   واجهة المستخدم
+   ============================================================ */
+function renderProductSelect(){
+  const sel=document.getElementById('productSelect');
+  sel.innerHTML = data.products.map(p=>`<option value="${p.id}" ${p.id===data.activeId?'selected':''}>${esc(p.name)}</option>`).join('');
+  const p=activeProduct();
+  document.getElementById('productMeta').textContent = `عدد القياسات: ${p.measures.length} · القياسات ذات معادلة احتياطية: ${p.measures.filter(m=>m.eq&&m.eq.trim()).length}`;
+}
+function renderGrid(){
+  const p=activeProduct();
+  const grid=document.getElementById('measureGrid');
+  grid.innerHTML = p.measures.map(m=>`
+    <div class="mfield" id="mf_${m.key}">
+      <div class="top">
+        <span class="name">${esc(m.label)}</span>
+        <span class="unit">${esc(m.unit||'')}</span>
+      </div>
+      <input type="number" step="any" inputmode="decimal" id="in_${m.key}"
+             placeholder="—" oninput="onManualInput('${m.key}')" />
+      <div class="eqnote" id="note_${m.key}"></div>
+    </div>`).join('');
+  document.getElementById('report').classList.remove('show');
+  document.getElementById('statusLine').textContent='';
+}
+function onManualInput(key){
+  // إذا عدّل المستخدم حقلاً كان محسوباً، نزيل تمييزه
+  const mf=document.getElementById('mf_'+key);
+  mf.classList.remove('filled');
+  document.getElementById('note_'+key).textContent='';
+}
+function readValues(){
+  const p=activeProduct(); const vals={};
+  p.measures.forEach(m=>{
+    const el=document.getElementById('in_'+m.key);
+    const v=el.value.trim();
+    vals[m.key] = v==='' ? null : parseFloat(v);
+  });
+  return vals;
+}
+function computeMissing(){
+  const p=activeProduct();
+  const vals=readValues();
+  // إعادة تعيين التمييز
+  p.measures.forEach(m=>{ const mf=document.getElementById('mf_'+m.key); mf.classList.remove('filled'); document.getElementById('note_'+m.key).textContent=''; });
+
+  const enteredCount = Object.values(vals).filter(v=>v!==null && !isNaN(v)).length;
+  if(enteredCount===0){ toast('أدخل قياساً واحداً على الأقل أولاً'); }
+
+  const {filled, errors}=resolveMissing(p.measures, vals);
+
+  // كتابة النتائج في الحقول
+  filled.forEach(f=>{
+    const el=document.getElementById('in_'+f.key);
+    el.value=f.value;
+    const mf=document.getElementById('mf_'+f.key);
+    mf.classList.add('filled');
+    document.getElementById('note_'+f.key).innerHTML = `⚙ محسوب: <span style="direction:ltr;display:inline-block">${esc(f.key)} = ${esc(f.eq)}</span>`;
+  });
+
+  // التقرير
+  const rep=document.getElementById('report'); const list=document.getElementById('reportList');
+  let html='';
+  if(filled.length){
+    filled.forEach(f=>{
+      const eqResolved = humanizeEq(f.eq, p.measures);
+      html += `<li>✅ تم تعديل قياس <span class="ml">«${esc(f.label)}»</span> —
+        المعادلة: <span class="eq">${esc(f.key)} = ${esc(f.eq)}</span>
+        ( ${esc(eqResolved)} ) ⟵ القيمة: <span class="val">${f.value} ${esc(f.unit||'')}</span></li>`;
+    });
+  }
+  errors.forEach(er=>{
+    html += `<li class="err">⚠️ تعذّر حساب «${esc(er.label)}»: ${esc(er.reason)}</li>`;
+  });
+  if(!html) html='<li>لا توجد قياسات ناقصة — كل القياسات مُدخلة يدوياً.</li>';
+  list.innerHTML=html;
+  rep.classList.add('show');
+
+  const total=p.measures.length;
+  document.getElementById('statusLine').textContent =
+    `تم استكمال ${filled.length} قياس · إجمالي ${total} · ${errors.length?('متعذّر: '+errors.length):'مكتمل'}`;
+
+  if(filled.length) toast(`تم استكمال ${filled.length} قياس تلقائياً`);
+}
+// يحوّل المعادلة إلى صيغة بالقيم الفعلية للتوضيح: chest - 6  =>  92 - 6
+function humanizeEq(eq, measures){
+  const known={};
+  measures.forEach(m=>{ const el=document.getElementById('in_'+m.key); if(el && el.value.trim()!=='') known[m.key]=el.value.trim(); });
+  return eq.replace(/[A-Za-z_؀-ۿ][A-Za-z0-9_؀-ۿ]*/g, (w)=> (w in known)? known[w] : w);
+}
+function clearValues(){
+  const p=activeProduct();
+  p.measures.forEach(m=>{ document.getElementById('in_'+m.key).value=''; onManualInput(m.key); });
+  document.getElementById('report').classList.remove('show');
+  document.getElementById('statusLine').textContent='';
+}
+
+/* ---------- إدارة المنتجات ---------- */
+function selectProduct(id){ data.activeId=id; save(); renderProductSelect(); renderGrid(); }
+function addProduct(){
+  const name=prompt('اسم المنتج الجديد:','');
+  if(!name) return;
+  const id='p_'+Date.now();
+  data.products.push({id, name, measures:[
+    {key:'length', label:'الطول', unit:'سم', eq:''},
+    {key:'width',  label:'العرض', unit:'سم', eq:'length/2'}
+  ]});
+  data.activeId=id; save(); renderProductSelect(); renderGrid();
+  toast('تم إنشاء المنتج — افتح «القياسات والمعادلات» لتعديله');
+  openManage();
+}
+function deleteProduct(){
+  if(data.products.length<=1){ toast('لا يمكن حذف المنتج الوحيد'); return; }
+  const p=activeProduct();
+  if(!confirm('حذف المنتج «'+p.name+'» نهائياً؟')) return;
+  data.products=data.products.filter(x=>x.id!==p.id);
+  data.activeId=data.products[0].id; save(); renderProductSelect(); renderGrid();
+}
+
+/* ---------- إدارة القياسات والمعادلات ---------- */
+let manageDraft=[];
+function openManage(){
+  const p=activeProduct();
+  document.getElementById('manageProductName').textContent=p.name;
+  manageDraft = JSON.parse(JSON.stringify(p.measures));
+  renderManageRows();
+  document.getElementById('manageModal').classList.add('show');
+}
+function renderManageRows(){
+  document.getElementById('manageRows').innerHTML = manageDraft.map((m,i)=>`
+    <tr>
+      <td><input type="text" value="${esc(m.key)}" onchange="manageDraft[${i}].key=this.value.trim()" style="direction:ltr;text-align:left"></td>
+      <td><input type="text" value="${esc(m.label)}" onchange="manageDraft[${i}].label=this.value"></td>
+      <td><input type="text" value="${esc(m.unit||'')}" onchange="manageDraft[${i}].unit=this.value" style="width:60px"></td>
+      <td><input type="text" class="eqcell" value="${esc(m.eq||'')}" placeholder="مثال: chest - 6" onchange="manageDraft[${i}].eq=this.value.trim()"></td>
+      <td><button class="btn danger small" onclick="manageDraft.splice(${i},1);renderManageRows()">✕</button></td>
+    </tr>`).join('');
+}
+function addMeasureRow(){ manageDraft.push({key:'', label:'', unit:'سم', eq:''}); renderManageRows(); }
+function saveManage(){
+  // تحقّق: مفاتيح فريدة وغير فارغة
+  const keys=manageDraft.map(m=>m.key);
+  if(keys.some(k=>!k)){ toast('كل قياس يحتاج مفتاحاً إنجليزياً'); return; }
+  if(new Set(keys).size!==keys.length){ toast('المفاتيح يجب أن تكون فريدة'); return; }
+  // تحقّق صحة المعادلات
+  for(const m of manageDraft){
+    if(m.eq && m.eq.trim()){
+      try{ tokenize(m.eq); }catch(e){ toast('معادلة «'+m.label+'» بها خطأ: '+e.message); return; }
+      const deps=getDeps(m.eq);
+      const unknown=deps.filter(d=>!keys.includes(d));
+      if(unknown.length){ toast('المعادلة «'+m.label+'» تشير لمفاتيح غير موجودة: '+unknown.join(', ')); return; }
+    }
+  }
+  const p=activeProduct();
+  p.measures=manageDraft;
+  save(); renderProductSelect(); renderGrid(); closeManage();
+  toast('تم حفظ القياسات والمعادلات');
+}
+function closeManage(){ document.getElementById('manageModal').classList.remove('show'); }
+
+/* ---------- تصدير / استيراد ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='measurement-compensation.json'; a.click();
+}
+function importData(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.products&&d.products.length){ data=d; save(); renderProductSelect(); renderGrid(); toast('تم الاستيراد'); } else toast('ملف غير صالح'); }catch(e){ toast('تعذّر قراءة الملف'); } };
+  r.readAsText(f); ev.target.value='';
+}
+
+/* ---------- أدوات ---------- */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ---------- تشغيل ---------- */
+renderProductSelect();
+renderGrid();
+
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+</script>
+</body>
+</html>
