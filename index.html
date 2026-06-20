@@ -134,6 +134,15 @@
   .s-auto{background:rgba(245,158,11,.18); color:var(--accent)}
   .s-miss{background:rgba(239,68,68,.18); color:#fca5a5}
 
+  /* بطاقات أنواع الجسم */
+  .profcard{background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:12px}
+  .profcard .ph{display:flex; gap:8px; align-items:center; margin-bottom:8px}
+  .profcard .ph input{font-weight:700}
+  .ovrow{display:flex; gap:8px; align-items:center; margin-bottom:6px}
+  .ovrow select{flex:1.2}
+  .ovrow input{flex:1; direction:ltr; text-align:left}
+  .ovrow .eqc{flex:1}
+
   /* الطباعة: إظهار ورقة القياسات فقط */
   @media print{
     body{background:#fff; color:#000}
@@ -168,6 +177,7 @@
       </div>
       <div style="align-self:flex-end; display:flex; gap:8px; flex-wrap:wrap">
         <button class="btn sec small" onclick="openManage()">⚙️ القياسات والمعادلات</button>
+        <button class="btn sec small" onclick="openProfiles()">🧍 أنواع الجسم</button>
         <button class="btn warn small" onclick="addProduct()">➕ منتج جديد</button>
         <button class="btn danger small" onclick="deleteProduct()">🗑 حذف</button>
       </div>
@@ -277,6 +287,25 @@
       <span class="sp"></span>
       <button class="btn" onclick="saveManage()">✔ حفظ</button>
       <button class="btn sec" onclick="closeManage()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة إدارة أنواع الجسم (البروفايلات) -->
+<div class="modal-bg" id="profilesModal">
+  <div class="modal" style="max-width:720px">
+    <h2>🧍 أنواع الجسم: <span id="profProductName" style="color:var(--brand)"></span></h2>
+    <p class="help">
+      كل <b>نوع جسم</b> يُبدّل معادلات بعض القياسات فقط (مثل الخصر/الورك/الأسفل)؛ والقياسات غير المذكورة
+      تستخدم المعادلة الأساسية. أضف لكل نوع التعديلات التي تريدها.<br>
+      مثال — «بكرش»: الخصر <code>CH + 8</code> · الورك <code>CH + 2</code>.
+    </p>
+    <div id="profilesList"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn sec small" onclick="addProfileDraft()">➕ إضافة نوع جسم</button>
+      <span class="sp"></span>
+      <button class="btn" onclick="saveProfiles()">✔ حفظ</button>
+      <button class="btn sec" onclick="closeProfiles()">إغلاق</button>
     </div>
   </div>
 </div>
@@ -757,6 +786,71 @@ function saveManage(){
   toast('تم حفظ القياسات والمعادلات');
 }
 function closeManage(){ document.getElementById('manageModal').classList.remove('show'); }
+
+/* ---------- إدارة أنواع الجسم (البروفايلات) ---------- */
+let profilesDraft=[];
+function openProfiles(){
+  const p=activeProduct();
+  document.getElementById('profProductName').textContent=p.name;
+  profilesDraft = (p.profiles||[]).map(pr=>({
+    id:pr.id, name:pr.name,
+    ovs:Object.entries(pr.overrides||{}).map(([key,eq])=>({key,eq}))
+  }));
+  renderProfilesDraft();
+  document.getElementById('profilesModal').classList.add('show');
+}
+function measureOptions(selKey){
+  return activeProduct().measures.map(m=>
+    `<option value="${esc(m.key)}" ${m.key===selKey?'selected':''}>${esc(m.label)} (${esc(m.key)})</option>`).join('');
+}
+function renderProfilesDraft(){
+  document.getElementById('profilesList').innerHTML = profilesDraft.map((pr,i)=>`
+    <div class="profcard">
+      <div class="ph">
+        <input type="text" value="${esc(pr.name)}" placeholder="اسم نوع الجسم"
+               onchange="profilesDraft[${i}].name=this.value">
+        <button class="btn danger small" onclick="profilesDraft.splice(${i},1);renderProfilesDraft()">🗑 حذف النوع</button>
+      </div>
+      ${pr.ovs.map((o,j)=>`
+        <div class="ovrow">
+          <select onchange="profilesDraft[${i}].ovs[${j}].key=this.value">${measureOptions(o.key)}</select>
+          <span style="color:var(--muted)">=</span>
+          <input type="text" class="eqc" value="${esc(o.eq)}" placeholder="مثال: CH + 8"
+                 onchange="profilesDraft[${i}].ovs[${j}].eq=this.value.trim()">
+          <button class="btn danger small" onclick="profilesDraft[${i}].ovs.splice(${j},1);renderProfilesDraft()">✕</button>
+        </div>`).join('')}
+      <button class="btn sec small" onclick="profilesDraft[${i}].ovs.push({key:activeProduct().measures[0].key,eq:''});renderProfilesDraft()">➕ إضافة قياس معدّل</button>
+    </div>`).join('') || '<p class="muted">لا توجد أنواع. أضف نوعاً جديداً.</p>';
+}
+function addProfileDraft(){
+  profilesDraft.push({id:'pr_'+Date.now(), name:'', ovs:[]});
+  renderProfilesDraft();
+}
+function saveProfiles(){
+  const keys=activeProduct().measures.map(m=>m.key);
+  for(const pr of profilesDraft){
+    if(!pr.name.trim()){ toast('كل نوع جسم يحتاج اسماً'); return; }
+    const seen=new Set();
+    for(const o of pr.ovs){
+      if(seen.has(o.key)){ toast(`«${pr.name}»: القياس ${o.key} مكرّر`); return; }
+      seen.add(o.key);
+      if(o.eq && o.eq.trim()){
+        try{ tokenize(o.eq); }catch(e){ toast(`خطأ في معادلة «${pr.name}»: ${e.message}`); return; }
+        const unknown=getDeps(o.eq).filter(d=>!keys.includes(d));
+        if(unknown.length){ toast(`«${pr.name}»: مفاتيح غير موجودة: ${unknown.join(', ')}`); return; }
+      }
+    }
+  }
+  const p=activeProduct();
+  p.profiles = profilesDraft.map(pr=>{
+    const overrides={}; pr.ovs.forEach(o=>{ if(o.eq && o.eq.trim()) overrides[o.key]=o.eq.trim(); });
+    return {id:pr.id, name:pr.name.trim(), overrides};
+  });
+  if(!p.profiles.find(x=>x.id===p.activeProfile)) p.activeProfile = p.profiles.length? p.profiles[0].id : null;
+  save(); renderProductSelect(); closeProfiles();
+  toast('تم حفظ أنواع الجسم');
+}
+function closeProfiles(){ document.getElementById('profilesModal').classList.remove('show'); }
 
 /* ---------- تصدير / استيراد ---------- */
 function exportData(){
