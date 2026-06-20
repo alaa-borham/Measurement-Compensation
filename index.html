@@ -283,7 +283,7 @@
    ============================================================ */
 
 const STORE_KEY = 'measComp_v1';
-const DATA_VERSION = 3; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
+const DATA_VERSION = 4; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
 
 /* ---------- المنتجات الافتراضية ---------- */
 function defaultData(){
@@ -298,11 +298,11 @@ function defaultData(){
           // المفتاح = الاختصار الإنجليزي المعتمد في نظامك (يُستخدم داخل المعادلات)
           {key:'FL',  label:'الطول الكلي الأمامي',     en:'Front Length',          unit:'سم', eq:''},
           {key:'BL',  label:'الطول الكلي الخلفي',      en:'Back Length',           unit:'سم', eq:'FL'},
-          {key:'SH',  label:'مقاس الكتف',              en:'Shoulder',              unit:'سم', eq:'CH/3'},
-          {key:'DSR', label:'نزول كتف يمين',           en:'Down Shoulder R',       unit:'سم', eq:'SH/7'},
+          {key:'SH',  label:'مقاس الكتف',              en:'Shoulder',              unit:'سم', eq:'CH*0.4'},
+          {key:'DSR', label:'نزول كتف يمين',           en:'Down Shoulder R',       unit:'سم', eq:'SH/9'},
           {key:'DSL', label:'نزول كتف يسار',           en:'Down Shoulder L',       unit:'سم', eq:'DSR'},
           {key:'DSB', label:'نزول الكتف خلف',          en:'Down Shoulder Back',    unit:'سم', eq:'SH/12'},
-          {key:'SLS', label:'طول الكم الساده',         en:'Sleeve Sada',           unit:'سم', eq:'FL - 18'},
+          {key:'SLS', label:'طول الكم الساده',         en:'Sleeve Sada',           unit:'سم', eq:'FL*0.34 + 12'},
           {key:'SLK', label:'طول الكم الكبك',          en:'Sleeve Kabak',          unit:'سم', eq:'SLS + 4'},
           {key:'CH',  label:'مقاس الصدر كامل',         en:'Full Chest',            unit:'سم', eq:'WA + 6'},
           {key:'WA',  label:'مقاس الوسط',              en:'Waist',                 unit:'سم', eq:'CH - 6'},
