@@ -1,4 +1,4 @@
-const CACHE = 'meas-comp-v5';
+const CACHE = 'meas-comp-v6';
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {

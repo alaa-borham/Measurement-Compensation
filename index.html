@@ -84,20 +84,31 @@
   code{background:#0a1426; padding:1px 6px; border-radius:5px; color:#7dd3fc; direction:ltr; display:inline-block}
   @media(max-width:560px){ .grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))} }
 
-  /* الزر العائم لاستكمال الناقص */
-  .fab{
+  /* مجموعة الأزرار العائمة */
+  .fab-group{
     position:fixed; bottom:22px; left:22px; z-index:60;
-    background:linear-gradient(180deg,#14b8a6,#0d9488); color:#04201c;
-    border:none; border-radius:30px; padding:14px 22px; font-size:15px; font-weight:800;
-    box-shadow:0 8px 24px rgba(13,148,136,.45); cursor:pointer; display:flex; align-items:center; gap:8px;
-    transition:transform .15s, box-shadow .15s, opacity .25s, visibility .25s;
+    display:flex; flex-direction:column; align-items:flex-start; gap:10px;
+    transition:opacity .25s, visibility .25s, transform .25s;
   }
-  .fab:hover{ transform:translateY(-2px); box-shadow:0 12px 30px rgba(13,148,136,.55) }
-  .fab:active{ transform:translateY(0) scale(.97) }
-  .fab .ic{ font-size:18px }
-  /* يختفي تلقائياً عندما يكون الزر الأصلي ظاهراً على الشاشة لتفادي التكرار */
-  .fab.tucked{ opacity:0; visibility:hidden; transform:translateY(20px) }
-  @media(max-width:560px){ .fab{ left:14px; bottom:16px; padding:13px 20px } }
+  .fab-group.tucked{ opacity:0; visibility:hidden; transform:translateY(20px) }
+  .fab-main, .fab-mini{
+    border:none; cursor:pointer; font-weight:800; display:flex; align-items:center; gap:8px;
+    transition:transform .15s, box-shadow .15s, filter .15s;
+  }
+  .fab-main{
+    background:linear-gradient(180deg,#14b8a6,#0d9488); color:#04201c;
+    border-radius:30px; padding:14px 22px; font-size:15px;
+    box-shadow:0 8px 24px rgba(13,148,136,.45);
+  }
+  .fab-mini{
+    background:#1e293b; color:var(--txt); border:1px solid var(--line);
+    border-radius:24px; padding:10px 16px; font-size:13px;
+    box-shadow:0 6px 18px rgba(0,0,0,.35);
+  }
+  .fab-main:hover, .fab-mini:hover{ transform:translateY(-2px) }
+  .fab-main:active, .fab-mini:active{ transform:translateY(0) scale(.97) }
+  .fab-main .ic{ font-size:18px }
+  @media(max-width:560px){ .fab-group{ left:14px; bottom:16px } .fab-main{ padding:13px 20px } }
 
   /* صندوق القياس قابل للضغط + أيقونة المعلومات */
   .mfield{cursor:pointer}
@@ -167,6 +178,10 @@
   <!-- شاشة القياسات -->
   <div class="card">
     <h2>📐 شاشة القياسات</h2>
+    <div style="margin-bottom:12px">
+      <label class="fld">👤 اسم صاحب القياس</label>
+      <input type="text" id="clientName" placeholder="اكتب اسم العميل" oninput="saveClientName()">
+    </div>
     <p class="help">
       أدخل القياسات المتوفرة فقط واترك الناقص فارغاً، ثم اضغط <b>«استكمال الناقص»</b>.
       سيقوم النظام بحساب كل قياس ناقص من المتوفر وتمييزه بلون مختلف.
@@ -191,10 +206,14 @@
   </p>
 </div>
 
-<!-- زر عائم لاستكمال الناقص يظهر دائماً أينما كان المستخدم -->
-<button class="fab" id="fab" onclick="computeMissing()" title="استكمال الناقص">
-  <span class="ic">🧮</span><span>استكمال الناقص</span>
-</button>
+<!-- أزرار عائمة تظهر دائماً أينما كان المستخدم -->
+<div class="fab-group" id="fab">
+  <button class="fab-mini" onclick="clearValues()" title="تفريغ">↺ تفريغ</button>
+  <button class="fab-mini" onclick="openFullList()" title="القائمة الكاملة">📋 القائمة الكاملة</button>
+  <button class="fab-main" onclick="computeMissing()" title="استكمال الناقص">
+    <span class="ic">🧮</span><span>استكمال الناقص</span>
+  </button>
+</div>
 
 <!-- نافذة منبثقة لمعادلة قياس واحد -->
 <div class="modal-bg" id="boxPopup" onclick="if(event.target===this)closePopup()">
@@ -618,13 +637,17 @@ function openFullList(){
       <td><span class="srcpill ${cls}">${src}</span></td>
       <td class="eqcell">${esc(eqTxt)}</td></tr>`;
   }).join('');
-  document.getElementById('fullListTitle').textContent = 'القائمة الكاملة — '+p.name;
+  const client = (data.clientName||'').trim();
+  document.getElementById('fullListTitle').textContent =
+    'القائمة الكاملة — '+p.name + (client? ' · العميل: '+client : '');
+  const today = new Date().toLocaleDateString('ar-EG');
   document.getElementById('fullListSummary').textContent =
-    `الإجمالي ${p.measures.length} · يدوي ${manualN} · محسوب ${autoN} · ناقص ${missN}`;
+    `${client? 'العميل: '+client+' · ' : ''}التاريخ: ${today} · الإجمالي ${p.measures.length} · يدوي ${manualN} · محسوب ${autoN} · ناقص ${missN}`;
   document.getElementById('fullListBody').innerHTML = rows;
   document.getElementById('fullListModal').classList.add('show');
 }
 function closeFullList(){ document.getElementById('fullListModal').classList.remove('show'); }
+function saveClientName(){ data.clientName = document.getElementById('clientName').value; save(); }
 function printFullList(){ window.print(); }
 
 /* ---------- إدارة المنتجات ---------- */
@@ -723,6 +746,7 @@ function setupFab(){
 renderProductSelect();
 renderGrid();
 setupFab();
+document.getElementById('clientName').value = data.clientName || '';
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 </script>
