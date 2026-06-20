@@ -264,7 +264,7 @@
    ============================================================ */
 
 const STORE_KEY = 'measComp_v1';
-const DATA_VERSION = 2; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
+const DATA_VERSION = 3; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
 
 /* ---------- المنتجات الافتراضية ---------- */
 function defaultData(){
@@ -280,16 +280,16 @@ function defaultData(){
           {key:'FL',  label:'الطول الكلي الأمامي',     en:'Front Length',          unit:'سم', eq:''},
           {key:'BL',  label:'الطول الكلي الخلفي',      en:'Back Length',           unit:'سم', eq:'FL'},
           {key:'SH',  label:'مقاس الكتف',              en:'Shoulder',              unit:'سم', eq:'CH/3'},
-          {key:'DSR', label:'نزول كتف يمين',           en:'Down Shoulder R',       unit:'سم', eq:'5'},
+          {key:'DSR', label:'نزول كتف يمين',           en:'Down Shoulder R',       unit:'سم', eq:'SH/7'},
           {key:'DSL', label:'نزول كتف يسار',           en:'Down Shoulder L',       unit:'سم', eq:'DSR'},
-          {key:'DSB', label:'نزول الكتف خلف',          en:'Down Shoulder Back',    unit:'سم', eq:'3'},
+          {key:'DSB', label:'نزول الكتف خلف',          en:'Down Shoulder Back',    unit:'سم', eq:'SH/12'},
           {key:'SLS', label:'طول الكم الساده',         en:'Sleeve Sada',           unit:'سم', eq:'FL - 18'},
           {key:'SLK', label:'طول الكم الكبك',          en:'Sleeve Kabak',          unit:'سم', eq:'SLS + 4'},
           {key:'CH',  label:'مقاس الصدر كامل',         en:'Full Chest',            unit:'سم', eq:'WA + 6'},
           {key:'WA',  label:'مقاس الوسط',              en:'Waist',                 unit:'سم', eq:'CH - 6'},
           {key:'HP',  label:'مقاس الهيب',              en:'Hip',                   unit:'سم', eq:'CH + 4'},
           {key:'BO',  label:'مقاس أسفل',               en:'Bottom',                unit:'سم', eq:'HP + 4'},
-          {key:'WB',  label:'عرض كفة أسفل',            en:'Width Bottom',          unit:'سم', eq:'12'},
+          {key:'WB',  label:'عرض كفة أسفل',            en:'Width Bottom',          unit:'سم', eq:'BO/10'},
           {key:'FWY', label:'مقاس الصدر العلوي',       en:'Front Width Youk',      unit:'سم', eq:'CH/2 - 2'},
           {key:'FW',  label:'مقاس نصف الصدر',          en:'Front Width',           unit:'سم', eq:'CH/2'},
           {key:'BWY', label:'مقاس الظهر الخلفي',       en:'Back Width Youk',       unit:'سم', eq:'CH/2'},
@@ -302,23 +302,23 @@ function defaultData(){
           {key:'KW',  label:'مقاس عرض الكبك',          en:'Kabak Width',           unit:'سم', eq:'WK/2'},
           {key:'COS', label:'مقاس الرقبة الساده',      en:'Collar Sada',           unit:'سم', eq:'CH/6'},
           {key:'COG', label:'مقاس الرقبة القلاب',      en:'Collar Gallab',         unit:'سم', eq:'COS'},
-          {key:'GFW', label:'ارتفاع القلاب الأمام',    en:'Gallab Front Width',    unit:'سم', eq:'8'},
-          {key:'BCH', label:'ارتفاع القلاب الخلف',     en:'Back Collar Height',    unit:'سم', eq:'4'},
-          {key:'COF', label:'فتحة القلاب الأمامية',    en:'Collar Opening Front',  unit:'سم', eq:'8'},
-          {key:'CSW', label:'ارتفاع الرقبة الساده',    en:'Collar Sada Width',     unit:'سم', eq:'4'},
-          {key:'JL',  label:'طول الجبزور',             en:'Jabzour Length',        unit:'سم', eq:'35'},
-          {key:'JW',  label:'عرض الجبزور',             en:'Jabzour Width',         unit:'سم', eq:'4'},
-          {key:'PH',  label:'نزول جيب الصدر',          en:'Pocket Height',         unit:'سم', eq:'22'},
-          {key:'CBL', label:'طول جيب الصدر',           en:'Chest Pocket Length',   unit:'سم', eq:'16'},
-          {key:'CBW', label:'عرض جيب الصدر',           en:'Chest Pocket Width',    unit:'سم', eq:'14'},
-          {key:'TKL', label:'طول الاشتك (التخليص)',    en:'Takhlees Length',       unit:'سم', eq:'12'},
-          {key:'TKW', label:'عرض الاشتك (التخليص)',    en:'Takhlees Width',        unit:'سم', eq:'3'},
-          {key:'DSP', label:'نزول جيب الجنب',          en:'Down Side Pocket',      unit:'سم', eq:'18'},
-          {key:'SPO', label:'فتحة جيب الجنب',          en:'Side Pocket Opening',   unit:'سم', eq:'16'},
-          {key:'SPL', label:'طول جيب الجنب',           en:'Side Pocket Length',    unit:'سم', eq:'16'},
-          {key:'SPW', label:'عرض جيب الجنب',           en:'Side Pocket Width',     unit:'سم', eq:'4'},
-          {key:'MPL', label:'طول جيب الجوال',          en:'Mobile Pocket Length',  unit:'سم', eq:'16'},
-          {key:'MPW', label:'عرض جيب الجوال',          en:'Mobile Pocket Width',   unit:'سم', eq:'9'}
+          {key:'GFW', label:'ارتفاع القلاب الأمام',    en:'Gallab Front Width',    unit:'سم', eq:'CSW*2'},
+          {key:'BCH', label:'ارتفاع القلاب الخلف',     en:'Back Collar Height',    unit:'سم', eq:'CSW'},
+          {key:'COF', label:'فتحة القلاب الأمامية',    en:'Collar Opening Front',  unit:'سم', eq:'COS/2'},
+          {key:'CSW', label:'ارتفاع الرقبة الساده',    en:'Collar Sada Width',     unit:'سم', eq:'COS/4.5'},
+          {key:'JL',  label:'طول الجبزور',             en:'Jabzour Length',        unit:'سم', eq:'CH/3'},
+          {key:'JW',  label:'عرض الجبزور',             en:'Jabzour Width',         unit:'سم', eq:'CSW'},
+          {key:'PH',  label:'نزول جيب الصدر',          en:'Pocket Height',         unit:'سم', eq:'CH/5'},
+          {key:'CBL', label:'طول جيب الصدر',           en:'Chest Pocket Length',   unit:'سم', eq:'CH/7'},
+          {key:'CBW', label:'عرض جيب الصدر',           en:'Chest Pocket Width',    unit:'سم', eq:'CBL - 2'},
+          {key:'TKL', label:'طول الاشتك (التخليص)',    en:'Takhlees Length',       unit:'سم', eq:'CBL - 4'},
+          {key:'TKW', label:'عرض الاشتك (التخليص)',    en:'Takhlees Width',        unit:'سم', eq:'TKL/4'},
+          {key:'DSP', label:'نزول جيب الجنب',          en:'Down Side Pocket',      unit:'سم', eq:'CH/6'},
+          {key:'SPO', label:'فتحة جيب الجنب',          en:'Side Pocket Opening',   unit:'سم', eq:'CBL'},
+          {key:'SPL', label:'طول جيب الجنب',           en:'Side Pocket Length',    unit:'سم', eq:'SPO'},
+          {key:'SPW', label:'عرض جيب الجنب',           en:'Side Pocket Width',     unit:'سم', eq:'SPL/4'},
+          {key:'MPL', label:'طول جيب الجوال',          en:'Mobile Pocket Length',  unit:'سم', eq:'CBL'},
+          {key:'MPW', label:'عرض جيب الجوال',          en:'Mobile Pocket Width',   unit:'سم', eq:'CH/12'}
         ]
       }
     ]
