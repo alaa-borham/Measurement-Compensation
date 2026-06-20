@@ -98,6 +98,43 @@
   /* يختفي تلقائياً عندما يكون الزر الأصلي ظاهراً على الشاشة لتفادي التكرار */
   .fab.tucked{ opacity:0; visibility:hidden; transform:translateY(20px) }
   @media(max-width:560px){ .fab{ left:14px; bottom:16px; padding:13px 20px } }
+
+  /* صندوق القياس قابل للضغط + أيقونة المعلومات */
+  .mfield{cursor:pointer}
+  .mfield .info{font-size:13px; color:var(--muted); cursor:pointer; line-height:1; padding:2px 4px; border-radius:6px}
+  .mfield .info:hover{color:var(--brand); background:rgba(20,184,166,.12)}
+  .mfield input{cursor:text}
+
+  /* النافذة المنبثقة لمعادلة قياس */
+  .popup{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px; width:100%; max-width:420px}
+  .popup-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .popup-head h2{margin:0; font-size:16px; color:var(--brand)}
+  .xbtn{background:transparent; border:none; color:var(--muted); font-size:18px; cursor:pointer; padding:4px 8px; border-radius:8px}
+  .xbtn:hover{color:var(--txt); background:#1e293b}
+  .popup-badge{display:inline-block; margin:10px 0 12px; font-size:13px; font-weight:700; padding:5px 12px; border-radius:20px; background:#0c1830; border:1px solid #1d3a66; color:#cbd5e1}
+  .prow{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-size:14px}
+  .prow:last-child{border-bottom:none}
+  .prow .pk{color:var(--muted)}
+  .prow .pv{font-weight:700; direction:ltr; unicode-bidi:plaintext; text-align:left}
+
+  /* شارات مصدر القياس في القائمة الكاملة */
+  .srcpill{font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; white-space:nowrap}
+  .s-man{background:rgba(148,163,184,.18); color:#cbd5e1}
+  .s-auto{background:rgba(245,158,11,.18); color:var(--accent)}
+  .s-miss{background:rgba(239,68,68,.18); color:#fca5a5}
+
+  /* الطباعة: إظهار ورقة القياسات فقط */
+  @media print{
+    body{background:#fff; color:#000}
+    body *{visibility:hidden}
+    #fullListModal, #fullListModal *{visibility:visible}
+    #fullListModal{position:absolute; inset:0; background:#fff; display:block; padding:0}
+    #fullListSheet{max-width:100%; border:none; color:#000; background:#fff}
+    #fullListSheet th, #fullListSheet td{border-color:#ccc; color:#000}
+    #fullListSheet .srcpill{color:#000 !important; background:#eee !important}
+    .noprint{display:none !important}
+    #fullListSheet > div{max-height:none !important; overflow:visible !important}
+  }
 </style>
 </head>
 <body>
@@ -132,19 +169,17 @@
     <h2>📐 شاشة القياسات</h2>
     <p class="help">
       أدخل القياسات المتوفرة فقط واترك الناقص فارغاً، ثم اضغط <b>«استكمال الناقص»</b>.
-      سيقوم النظام بحساب كل قياس ناقص من المتوفر، وتمييزه بلون مختلف مع كتابة المعادلة المستخدمة أسفله.
+      سيقوم النظام بحساب كل قياس ناقص من المتوفر وتمييزه بلون مختلف.
+      <b>اضغط على أي صندوق قياس</b> (أو على علامة ⓘ) لعرض معادلته في نافذة منبثقة،
+      أو افتح <b>«القائمة الكاملة»</b> لورقة قياسات العميل كاملة.
     </p>
     <div class="grid" id="measureGrid" style="margin-top:12px"></div>
     <div class="row" style="margin-top:14px">
       <button class="btn" id="inlineCompute" onclick="computeMissing()">🧮 استكمال الناقص</button>
+      <button class="btn sec" onclick="openFullList()">📋 القائمة الكاملة</button>
       <button class="btn sec" onclick="clearValues()">↺ تفريغ</button>
       <span class="sp"></span>
       <span class="muted" id="statusLine"></span>
-    </div>
-
-    <div class="report" id="report">
-      <h3>📋 تقرير القياسات المعوَّضة</h3>
-      <ul id="reportList"></ul>
     </div>
   </div>
 
@@ -160,6 +195,41 @@
 <button class="fab" id="fab" onclick="computeMissing()" title="استكمال الناقص">
   <span class="ic">🧮</span><span>استكمال الناقص</span>
 </button>
+
+<!-- نافذة منبثقة لمعادلة قياس واحد -->
+<div class="modal-bg" id="boxPopup" onclick="if(event.target===this)closePopup()">
+  <div class="popup">
+    <div class="popup-head">
+      <h2 id="popupTitle"></h2>
+      <button class="xbtn" onclick="closePopup()">✕</button>
+    </div>
+    <div class="popup-badge" id="popupBadge"></div>
+    <div id="popupBody"></div>
+    <button class="btn sec" style="width:100%;margin-top:14px" onclick="closePopup()">إغلاق</button>
+  </div>
+</div>
+
+<!-- نافذة القائمة الكاملة لقياسات العميل -->
+<div class="modal-bg" id="fullListModal" onclick="if(event.target===this)closeFullList()">
+  <div class="modal" id="fullListSheet">
+    <div class="popup-head">
+      <h2 id="fullListTitle" style="margin:0"></h2>
+      <button class="xbtn noprint" onclick="closeFullList()">✕</button>
+    </div>
+    <p class="muted" id="fullListSummary" style="margin:4px 0 12px"></p>
+    <div style="overflow:auto; max-height:60vh">
+      <table>
+        <thead><tr><th>#</th><th>القياس</th><th>المفتاح</th><th>القيمة</th><th>المصدر</th><th>المعادلة</th></tr></thead>
+        <tbody id="fullListBody"></tbody>
+      </table>
+    </div>
+    <div class="row noprint" style="margin-top:14px">
+      <button class="btn" onclick="printFullList()">🖨 طباعة</button>
+      <span class="sp"></span>
+      <button class="btn sec" onclick="closeFullList()">إغلاق</button>
+    </div>
+  </div>
+</div>
 
 <!-- نافذة إدارة القياسات والمعادلات -->
 <div class="modal-bg" id="manageModal">
@@ -415,20 +485,21 @@ function renderGrid(){
   const p=activeProduct();
   const grid=document.getElementById('measureGrid');
   grid.innerHTML = p.measures.map(m=>`
-    <div class="mfield" id="mf_${m.key}">
+    <div class="mfield" id="mf_${m.key}" onclick="showBoxPopup('${m.key}')">
       <div class="top">
         <span class="name">${esc(m.label)}</span>
-        <span class="unit">${esc(m.unit||'')}</span>
+        <span class="info" title="عرض المعادلة" onclick="event.stopPropagation();showBoxPopup('${m.key}')">ⓘ</span>
       </div>
       <input type="number" step="any" inputmode="decimal" id="in_${m.key}"
-             placeholder="—" oninput="onManualInput('${m.key}')" />
+             placeholder="—" onclick="event.stopPropagation()"
+             oninput="onManualInput('${m.key}')" />
       <div class="eqnote" id="note_${m.key}"></div>
     </div>`).join('');
-  document.getElementById('report').classList.remove('show');
   document.getElementById('statusLine').textContent='';
 }
 function onManualInput(key){
   // إذا عدّل المستخدم حقلاً كان محسوباً، نزيل تمييزه
+  if(lastFilled) delete lastFilled[key];
   const mf=document.getElementById('mf_'+key);
   mf.classList.remove('filled');
   document.getElementById('note_'+key).textContent='';
@@ -452,33 +523,13 @@ function computeMissing(){
   if(enteredCount===0){ toast('أدخل قياساً واحداً على الأقل أولاً'); }
 
   const {filled, errors}=resolveMissing(p.measures, vals);
+  lastFilled = {}; filled.forEach(f=> lastFilled[f.key]=f);   // نحفظ نتائج الحساب للنوافذ المنبثقة
 
-  // كتابة النتائج في الحقول
+  // كتابة النتائج في الحقول وتمييزها
   filled.forEach(f=>{
-    const el=document.getElementById('in_'+f.key);
-    el.value=f.value;
-    const mf=document.getElementById('mf_'+f.key);
-    mf.classList.add('filled');
-    document.getElementById('note_'+f.key).innerHTML = `⚙ محسوب: <span style="direction:ltr;display:inline-block">${esc(f.key)} = ${esc(f.eq)}</span>`;
+    document.getElementById('in_'+f.key).value=f.value;
+    document.getElementById('mf_'+f.key).classList.add('filled');
   });
-
-  // التقرير
-  const rep=document.getElementById('report'); const list=document.getElementById('reportList');
-  let html='';
-  if(filled.length){
-    filled.forEach(f=>{
-      const eqResolved = humanizeEq(f.eq, p.measures);
-      html += `<li>✅ تم تعديل قياس <span class="ml">«${esc(f.label)}»</span> —
-        المعادلة: <span class="eq">${esc(f.key)} = ${esc(f.eq)}</span>
-        ( ${esc(eqResolved)} ) ⟵ القيمة: <span class="val">${f.value} ${esc(f.unit||'')}</span></li>`;
-    });
-  }
-  errors.forEach(er=>{
-    html += `<li class="err">⚠️ تعذّر حساب «${esc(er.label)}»: ${esc(er.reason)}</li>`;
-  });
-  if(!html) html='<li>لا توجد قياسات ناقصة — كل القياسات مُدخلة يدوياً.</li>';
-  list.innerHTML=html;
-  rep.classList.add('show');
 
   const total=p.measures.length;
   document.getElementById('statusLine').textContent =
@@ -495,9 +546,86 @@ function humanizeEq(eq, measures){
 function clearValues(){
   const p=activeProduct();
   p.measures.forEach(m=>{ document.getElementById('in_'+m.key).value=''; onManualInput(m.key); });
-  document.getElementById('report').classList.remove('show');
+  lastFilled={};
   document.getElementById('statusLine').textContent='';
 }
+
+/* ============================================================
+   نافذة منبثقة لمعادلة قياس واحد عند الضغط على صندوقه
+   ============================================================ */
+let lastFilled = {};   // نتائج آخر عملية استكمال: key -> {eq,value,...}
+function previewValue(m){
+  // قيمة متوقّعة للمعادلة من القيم المُدخلة حالياً (دون كتابتها)
+  try{
+    const known={}; activeProduct().measures.forEach(x=>{ const e=document.getElementById('in_'+x.key); if(e&&e.value.trim()!=='') known[x.key]=parseFloat(e.value); });
+    return Math.round(evalEq(m.eq, known)*100)/100;
+  }catch(e){ return null; }
+}
+function showBoxPopup(key){
+  const p=activeProduct(); const m=p.measures.find(x=>x.key===key);
+  const el=document.getElementById('in_'+key);
+  const hasVal = el.value.trim()!=='';
+  const isAuto = document.getElementById('mf_'+key).classList.contains('filled');
+  let badge, rows=[];
+  rows.push(['المفتاح', key]);
+  rows.push(['الوحدة', m.unit||'—']);
+  if(hasVal && isAuto){
+    badge='🟡 محسوب تلقائياً';
+    rows.push(['المعادلة', key+' = '+(m.eq||'—')]);
+    rows.push(['بالأرقام', humanizeEq(m.eq,p.measures)+' = '+el.value]);
+    rows.push(['القيمة', el.value+' '+(m.unit||'')]);
+  } else if(hasVal){
+    badge='✋ مُدخل يدوياً';
+    rows.push(['القيمة', el.value+' '+(m.unit||'')]);
+    if(m.eq&&m.eq.trim()) rows.push(['المعادلة الاحتياطية', key+' = '+m.eq]);
+    else rows.push(['ملاحظة','قياس أساسي بلا معادلة']);
+  } else {
+    if(m.eq&&m.eq.trim()){
+      badge='⚪ فارغ — سيُحسب آلياً';
+      rows.push(['المعادلة', key+' = '+m.eq]);
+      const pv=previewValue(m);
+      rows.push(pv!=null ? ['قيمة متوقّعة', pv+' '+(m.unit||'')] : ['ملاحظة','يحتاج إدخال قياسات أخرى أولاً']);
+    } else {
+      badge='⚪ قياس أساسي — يُدخل يدوياً';
+      rows.push(['ملاحظة','لا معادلة احتياطية لهذا القياس']);
+    }
+  }
+  document.getElementById('popupTitle').textContent = m.label;
+  document.getElementById('popupBadge').textContent = badge;
+  document.getElementById('popupBody').innerHTML = rows.map(r=>
+    `<div class="prow"><span class="pk">${esc(r[0])}</span><span class="pv">${esc(r[1])}</span></div>`).join('');
+  document.getElementById('boxPopup').classList.add('show');
+}
+function closePopup(){ document.getElementById('boxPopup').classList.remove('show'); }
+
+/* ============================================================
+   القائمة الكاملة لكل قياسات العميل (قابلة للطباعة)
+   ============================================================ */
+function openFullList(){
+  const p=activeProduct(); const vals=readValues();
+  const {known, filled}=resolveMissing(p.measures, vals);
+  const fmap={}; filled.forEach(f=>fmap[f.key]=f);
+  let manualN=0, autoN=0, missN=0;
+  const rows=p.measures.map((m,i)=>{
+    const manual = vals[m.key]!==null && !isNaN(vals[m.key]);
+    let val = (m.key in known)? known[m.key] : '—';
+    let src, cls, eqTxt='—';
+    if(manual){ src='يدوي'; cls='s-man'; manualN++; if(m.eq) eqTxt=m.key+' = '+m.eq; }
+    else if(fmap[m.key]){ src='محسوب'; cls='s-auto'; autoN++; eqTxt=m.key+' = '+m.eq; }
+    else { src='ناقص'; cls='s-miss'; missN++; if(m.eq) eqTxt=m.key+' = '+m.eq; }
+    return `<tr><td>${i}</td><td>${esc(m.label)}</td><td style="direction:ltr">${esc(m.key)}</td>
+      <td style="text-align:center;font-weight:700">${esc(val)}</td>
+      <td><span class="srcpill ${cls}">${src}</span></td>
+      <td class="eqcell">${esc(eqTxt)}</td></tr>`;
+  }).join('');
+  document.getElementById('fullListTitle').textContent = 'القائمة الكاملة — '+p.name;
+  document.getElementById('fullListSummary').textContent =
+    `الإجمالي ${p.measures.length} · يدوي ${manualN} · محسوب ${autoN} · ناقص ${missN}`;
+  document.getElementById('fullListBody').innerHTML = rows;
+  document.getElementById('fullListModal').classList.add('show');
+}
+function closeFullList(){ document.getElementById('fullListModal').classList.remove('show'); }
+function printFullList(){ window.print(); }
 
 /* ---------- إدارة المنتجات ---------- */
 function selectProduct(id){ data.activeId=id; save(); renderProductSelect(); renderGrid(); }
