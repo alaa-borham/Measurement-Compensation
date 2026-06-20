@@ -283,7 +283,7 @@
    ============================================================ */
 
 const STORE_KEY = 'measComp_v1';
-const DATA_VERSION = 4; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
+const DATA_VERSION = 5; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
 
 /* ---------- المنتجات الافتراضية ---------- */
 function defaultData(){
@@ -303,7 +303,7 @@ function defaultData(){
           {key:'DSL', label:'نزول كتف يسار',           en:'Down Shoulder L',       unit:'سم', eq:'DSR'},
           {key:'DSB', label:'نزول الكتف خلف',          en:'Down Shoulder Back',    unit:'سم', eq:'SH/12'},
           {key:'SLS', label:'طول الكم الساده',         en:'Sleeve Sada',           unit:'سم', eq:'FL*0.34 + 12'},
-          {key:'SLK', label:'طول الكم الكبك',          en:'Sleeve Kabak',          unit:'سم', eq:'SLS + 4'},
+          {key:'SLK', label:'طول الكم الكبك',          en:'Sleeve Kabak',          unit:'سم', eq:'SLS - 4'},
           {key:'CH',  label:'مقاس الصدر كامل',         en:'Full Chest',            unit:'سم', eq:'WA + 6'},
           {key:'WA',  label:'مقاس الوسط',              en:'Waist',                 unit:'سم', eq:'CH - 6'},
           {key:'HP',  label:'مقاس الهيب',              en:'Hip',                   unit:'سم', eq:'CH + 4'},
