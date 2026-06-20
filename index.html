@@ -174,25 +174,61 @@
    ============================================================ */
 
 const STORE_KEY = 'measComp_v1';
+const DATA_VERSION = 2; // يُرفع عند تغيير القياسات الافتراضية لتفعيل الترقية
 
 /* ---------- المنتجات الافتراضية ---------- */
 function defaultData(){
   return {
+    version: DATA_VERSION,
     activeId: 'thobe',
     products: [
       {
         id:'thobe',
         name:'الثوب السعودي',
         measures:[
-          {key:'length',   label:'الطول',          unit:'سم', eq:''},
-          {key:'shoulder', label:'الكتف',          unit:'سم', eq:'chest/3'},
-          {key:'chest',    label:'الصدر',          unit:'سم', eq:'waist + 6'},
-          {key:'waist',    label:'الوسط',          unit:'سم', eq:'chest - 6'},
-          {key:'hem',      label:'الكعب (الأسفل)', unit:'سم', eq:'chest + 8'},
-          {key:'sleeve',   label:'طول الكم (الردن)',unit:'سم', eq:'length - 18'},
-          {key:'bicep',    label:'الزند',          unit:'سم', eq:'chest/4'},
-          {key:'cuff',     label:'الأسوارة',       unit:'سم', eq:'neck + 1'},
-          {key:'neck',     label:'الرقبة',         unit:'سم', eq:'chest/6'}
+          // المفتاح = الاختصار الإنجليزي المعتمد في نظامك (يُستخدم داخل المعادلات)
+          {key:'FL',  label:'الطول الكلي الأمامي',     en:'Front Length',          unit:'سم', eq:''},
+          {key:'BL',  label:'الطول الكلي الخلفي',      en:'Back Length',           unit:'سم', eq:'FL'},
+          {key:'SH',  label:'مقاس الكتف',              en:'Shoulder',              unit:'سم', eq:'CH/3'},
+          {key:'DSR', label:'نزول كتف يمين',           en:'Down Shoulder R',       unit:'سم', eq:'5'},
+          {key:'DSL', label:'نزول كتف يسار',           en:'Down Shoulder L',       unit:'سم', eq:'DSR'},
+          {key:'DSB', label:'نزول الكتف خلف',          en:'Down Shoulder Back',    unit:'سم', eq:'3'},
+          {key:'SLS', label:'طول الكم الساده',         en:'Sleeve Sada',           unit:'سم', eq:'FL - 18'},
+          {key:'SLK', label:'طول الكم الكبك',          en:'Sleeve Kabak',          unit:'سم', eq:'SLS + 4'},
+          {key:'CH',  label:'مقاس الصدر كامل',         en:'Full Chest',            unit:'سم', eq:'WA + 6'},
+          {key:'WA',  label:'مقاس الوسط',              en:'Waist',                 unit:'سم', eq:'CH - 6'},
+          {key:'HP',  label:'مقاس الهيب',              en:'Hip',                   unit:'سم', eq:'CH + 4'},
+          {key:'BO',  label:'مقاس أسفل',               en:'Bottom',                unit:'سم', eq:'HP + 4'},
+          {key:'WB',  label:'عرض كفة أسفل',            en:'Width Bottom',          unit:'سم', eq:'12'},
+          {key:'FWY', label:'مقاس الصدر العلوي',       en:'Front Width Youk',      unit:'سم', eq:'CH/2 - 2'},
+          {key:'FW',  label:'مقاس نصف الصدر',          en:'Front Width',           unit:'سم', eq:'CH/2'},
+          {key:'BWY', label:'مقاس الظهر الخلفي',       en:'Back Width Youk',       unit:'سم', eq:'CH/2'},
+          {key:'AH',  label:'مقاس أعلى الكم (الإبط)',  en:'Arm Hole',              unit:'سم', eq:'CH/4'},
+          {key:'EB',  label:'مقاس نصف الكم',           en:'Elbow',                 unit:'سم', eq:'AH - 4'},
+          {key:'EBT', label:'مقاس نصف الكم 2',         en:'Elbow Two',             unit:'سم', eq:'EB - 2'},
+          {key:'WR',  label:'مقاس اليد الساده',        en:'Sada Round',            unit:'سم', eq:'EBT - 2'},
+          {key:'WS',  label:'عرض اليد الساده',         en:'Sada Width',            unit:'سم', eq:'WR/2'},
+          {key:'WK',  label:'مقاس طول الكبك',          en:'Kabak Round',           unit:'سم', eq:'WR'},
+          {key:'KW',  label:'مقاس عرض الكبك',          en:'Kabak Width',           unit:'سم', eq:'WK/2'},
+          {key:'COS', label:'مقاس الرقبة الساده',      en:'Collar Sada',           unit:'سم', eq:'CH/6'},
+          {key:'COG', label:'مقاس الرقبة القلاب',      en:'Collar Gallab',         unit:'سم', eq:'COS'},
+          {key:'GFW', label:'ارتفاع القلاب الأمام',    en:'Gallab Front Width',    unit:'سم', eq:'8'},
+          {key:'BCH', label:'ارتفاع القلاب الخلف',     en:'Back Collar Height',    unit:'سم', eq:'4'},
+          {key:'COF', label:'فتحة القلاب الأمامية',    en:'Collar Opening Front',  unit:'سم', eq:'8'},
+          {key:'CSW', label:'ارتفاع الرقبة الساده',    en:'Collar Sada Width',     unit:'سم', eq:'4'},
+          {key:'JL',  label:'طول الجبزور',             en:'Jabzour Length',        unit:'سم', eq:'35'},
+          {key:'JW',  label:'عرض الجبزور',             en:'Jabzour Width',         unit:'سم', eq:'4'},
+          {key:'PH',  label:'نزول جيب الصدر',          en:'Pocket Height',         unit:'سم', eq:'22'},
+          {key:'CBL', label:'طول جيب الصدر',           en:'Chest Pocket Length',   unit:'سم', eq:'16'},
+          {key:'CBW', label:'عرض جيب الصدر',           en:'Chest Pocket Width',    unit:'سم', eq:'14'},
+          {key:'TKL', label:'طول الاشتك (التخليص)',    en:'Takhlees Length',       unit:'سم', eq:'12'},
+          {key:'TKW', label:'عرض الاشتك (التخليص)',    en:'Takhlees Width',        unit:'سم', eq:'3'},
+          {key:'DSP', label:'نزول جيب الجنب',          en:'Down Side Pocket',      unit:'سم', eq:'18'},
+          {key:'SPO', label:'فتحة جيب الجنب',          en:'Side Pocket Opening',   unit:'سم', eq:'16'},
+          {key:'SPL', label:'طول جيب الجنب',           en:'Side Pocket Length',    unit:'سم', eq:'16'},
+          {key:'SPW', label:'عرض جيب الجنب',           en:'Side Pocket Width',     unit:'سم', eq:'4'},
+          {key:'MPL', label:'طول جيب الجوال',          en:'Mobile Pocket Length',  unit:'سم', eq:'16'},
+          {key:'MPW', label:'عرض جيب الجوال',          en:'Mobile Pocket Width',   unit:'سم', eq:'9'}
         ]
       }
     ]
@@ -204,9 +240,22 @@ let data = load();
 function load(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
-    if(raw){ const d = JSON.parse(raw); if(d && d.products && d.products.length) return d; }
+    if(raw){ let d = JSON.parse(raw); if(d && d.products && d.products.length) return migrate(d); }
   }catch(e){}
   const d = defaultData(); save(d); return d;
+}
+// ترقية البيانات المحفوظة: تحدّث منتج «الثوب السعودي» الافتراضي مع الحفاظ على أي منتجات أضافها المستخدم
+function migrate(d){
+  if((d.version||1) < DATA_VERSION){
+    const fresh = defaultData();
+    const freshThobe = fresh.products.find(p=>p.id==='thobe');
+    const idx = d.products.findIndex(p=>p.id==='thobe');
+    if(idx>=0){ d.products[idx].measures = freshThobe.measures; d.products[idx].name = freshThobe.name; }
+    else { d.products.unshift(freshThobe); }
+    d.version = DATA_VERSION;
+    save(d);
+  }
+  return d;
 }
 function save(d){ localStorage.setItem(STORE_KEY, JSON.stringify(d||data)); }
 function activeProduct(){ return data.products.find(p=>p.id===data.activeId) || data.products[0]; }
