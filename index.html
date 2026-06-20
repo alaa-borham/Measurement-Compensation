@@ -143,6 +143,14 @@
   .ovrow input{flex:1; direction:ltr; text-align:left}
   .ovrow .eqc{flex:1}
 
+  /* نافذة أنواع الجسم بملء الشاشة */
+  #profilesModal{ padding:0; align-items:stretch }
+  #profilesModal > .modal{ max-width:100%; width:100%; min-height:100vh; border-radius:0; display:flex; flex-direction:column }
+  #profilesModal .prof-head{ position:sticky; top:0; background:var(--card); padding-bottom:10px; z-index:2; border-bottom:1px solid var(--line) }
+  #profilesModal #profilesList{ flex:1 }
+  #profilesModal .prof-foot{ position:sticky; bottom:0; background:var(--card); padding-top:10px; border-top:1px solid var(--line) }
+  .profcard .btn.small{ white-space:nowrap }
+
   /* الطباعة: إظهار ورقة القياسات فقط */
   @media print{
     body{background:#fff; color:#000}
@@ -294,18 +302,24 @@
 <!-- نافذة إدارة أنواع الجسم (البروفايلات) -->
 <div class="modal-bg" id="profilesModal">
   <div class="modal" style="max-width:720px">
-    <h2>🧍 أنواع الجسم: <span id="profProductName" style="color:var(--brand)"></span></h2>
-    <p class="help">
-      كل <b>نوع جسم</b> يُبدّل معادلات بعض القياسات فقط (مثل الخصر/الورك/الأسفل)؛ والقياسات غير المذكورة
-      تستخدم المعادلة الأساسية. أضف لكل نوع التعديلات التي تريدها.<br>
-      مثال — «بكرش»: الخصر <code>CH + 8</code> · الورك <code>CH + 2</code>.
-    </p>
-    <div id="profilesList"></div>
-    <div class="row" style="margin-top:12px">
-      <button class="btn sec small" onclick="addProfileDraft()">➕ إضافة نوع جسم</button>
-      <span class="sp"></span>
-      <button class="btn" onclick="saveProfiles()">✔ حفظ</button>
-      <button class="btn sec" onclick="closeProfiles()">إغلاق</button>
+    <div class="prof-head">
+      <div class="popup-head">
+        <h2 style="margin:0">🧍 أنواع الجسم: <span id="profProductName" style="color:var(--brand)"></span></h2>
+        <button class="xbtn" onclick="closeProfiles()">✕</button>
+      </div>
+      <p class="help" style="margin:8px 0 0">
+        كل <b>نوع جسم</b> يُبدّل معادلات بعض القياسات فقط (مثل الخصر/الورك/الأسفل)، والباقي يستخدم المعادلة الأساسية.
+        لكل نوع زرّ <b>«💾 حفظ هذا النوع»</b> يحفظه مستقلاً عن البقية.<br>
+        مثال — «بكرش»: الخصر <code>CH + 8</code> · الورك <code>CH + 2</code>.
+      </p>
+    </div>
+    <div id="profilesList" style="margin-top:12px"></div>
+    <div class="prof-foot">
+      <div class="row">
+        <button class="btn warn" onclick="addProfileDraft()">➕ إضافة نوع جسم</button>
+        <span class="sp"></span>
+        <button class="btn sec" onclick="closeProfiles()">إغلاق</button>
+      </div>
     </div>
   </div>
 </div>
@@ -809,7 +823,8 @@ function renderProfilesDraft(){
       <div class="ph">
         <input type="text" value="${esc(pr.name)}" placeholder="اسم نوع الجسم"
                onchange="profilesDraft[${i}].name=this.value">
-        <button class="btn danger small" onclick="profilesDraft.splice(${i},1);renderProfilesDraft()">🗑 حذف النوع</button>
+        <button class="btn small" onclick="saveOneProfile(${i})">💾 حفظ هذا النوع</button>
+        <button class="btn danger small" onclick="deleteProfileDraft(${i})">🗑 حذف</button>
       </div>
       ${pr.ovs.map((o,j)=>`
         <div class="ovrow">
@@ -825,30 +840,48 @@ function renderProfilesDraft(){
 function addProfileDraft(){
   profilesDraft.push({id:'pr_'+Date.now(), name:'', ovs:[]});
   renderProfilesDraft();
+  // مرّر لأسفل لإظهار النوع الجديد
+  const list=document.getElementById('profilesList'); if(list&&list.lastElementChild) list.lastElementChild.scrollIntoView({behavior:'smooth', block:'center'});
 }
-function saveProfiles(){
+// التحقق من صحة نوع واحد؛ يُرجع رسالة خطأ أو null
+function validateProfileDraft(pr){
   const keys=activeProduct().measures.map(m=>m.key);
-  for(const pr of profilesDraft){
-    if(!pr.name.trim()){ toast('كل نوع جسم يحتاج اسماً'); return; }
-    const seen=new Set();
-    for(const o of pr.ovs){
-      if(seen.has(o.key)){ toast(`«${pr.name}»: القياس ${o.key} مكرّر`); return; }
-      seen.add(o.key);
-      if(o.eq && o.eq.trim()){
-        try{ tokenize(o.eq); }catch(e){ toast(`خطأ في معادلة «${pr.name}»: ${e.message}`); return; }
-        const unknown=getDeps(o.eq).filter(d=>!keys.includes(d));
-        if(unknown.length){ toast(`«${pr.name}»: مفاتيح غير موجودة: ${unknown.join(', ')}`); return; }
-      }
+  if(!pr.name.trim()) return 'هذا النوع يحتاج اسماً';
+  const seen=new Set();
+  for(const o of pr.ovs){
+    if(seen.has(o.key)) return `القياس ${o.key} مكرّر`;
+    seen.add(o.key);
+    if(o.eq && o.eq.trim()){
+      try{ tokenize(o.eq); }catch(e){ return 'خطأ في معادلة: '+e.message; }
+      const unknown=getDeps(o.eq).filter(d=>!keys.includes(d));
+      if(unknown.length) return 'مفاتيح غير موجودة: '+unknown.join(', ');
     }
   }
+  return null;
+}
+// حفظ نوع جسم واحد مستقلاً عن البقية
+function saveOneProfile(i){
+  const pr=profilesDraft[i];
+  const err=validateProfileDraft(pr);
+  if(err){ toast(`«${pr.name||'نوع جديد'}»: ${err}`); return; }
+  const overrides={}; pr.ovs.forEach(o=>{ if(o.eq && o.eq.trim()) overrides[o.key]=o.eq.trim(); });
+  const entry={id:pr.id, name:pr.name.trim(), overrides};
   const p=activeProduct();
-  p.profiles = profilesDraft.map(pr=>{
-    const overrides={}; pr.ovs.forEach(o=>{ if(o.eq && o.eq.trim()) overrides[o.key]=o.eq.trim(); });
-    return {id:pr.id, name:pr.name.trim(), overrides};
-  });
-  if(!p.profiles.find(x=>x.id===p.activeProfile)) p.activeProfile = p.profiles.length? p.profiles[0].id : null;
-  save(); renderProductSelect(); closeProfiles();
-  toast('تم حفظ أنواع الجسم');
+  if(!p.profiles) p.profiles=[];
+  const idx=p.profiles.findIndex(x=>x.id===pr.id);
+  if(idx>=0) p.profiles[idx]=entry; else p.profiles.push(entry);   // كل جسم يُحفظ مستقلاً
+  if(!p.profiles.find(x=>x.id===p.activeProfile)) p.activeProfile=p.profiles[0].id;
+  save(); renderProductSelect();
+  toast(`💾 تم حفظ نوع: ${entry.name}`);
+}
+// حذف نوع من المسودّة ومن المحفوظ مباشرةً
+function deleteProfileDraft(i){
+  const pr=profilesDraft[i];
+  const p=activeProduct();
+  if(p.profiles){ p.profiles=p.profiles.filter(x=>x.id!==pr.id); if(!p.profiles.find(x=>x.id===p.activeProfile)) p.activeProfile=p.profiles.length?p.profiles[0].id:null; }
+  profilesDraft.splice(i,1);
+  save(); renderProductSelect(); renderProfilesDraft();
+  toast('تم حذف النوع');
 }
 function closeProfiles(){ document.getElementById('profilesModal').classList.remove('show'); }
 
