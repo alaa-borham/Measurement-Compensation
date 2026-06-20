@@ -534,9 +534,14 @@ function readValues(){
 }
 function computeMissing(){
   const p=activeProduct();
+  // أفرغ الحقول التي حُسبت آلياً سابقاً (قيمة + تمييز) حتى يُعاد حسابها من القيم اليدوية الجديدة
+  p.measures.forEach(m=>{
+    const mf=document.getElementById('mf_'+m.key);
+    if(mf.classList.contains('filled')){ document.getElementById('in_'+m.key).value=''; mf.classList.remove('filled'); }
+    document.getElementById('note_'+m.key).textContent='';
+  });
+  // الآن لم يبقَ في الحقول سوى القيم اليدوية الحقيقية
   const vals=readValues();
-  // إعادة تعيين التمييز
-  p.measures.forEach(m=>{ const mf=document.getElementById('mf_'+m.key); mf.classList.remove('filled'); document.getElementById('note_'+m.key).textContent=''; });
 
   const enteredCount = Object.values(vals).filter(v=>v!==null && !isNaN(v)).length;
   if(enteredCount===0){ toast('أدخل قياساً واحداً على الأقل أولاً'); }
